@@ -8,7 +8,7 @@ name = "jetro_dart"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-jetro-core = { path = "../../jetro/jetro-core", features = ["simd-json"] }
+jetro-core = "0.5.7"
 serde_json = "1"
 
 [profile.release]
