@@ -44,15 +44,18 @@ jobs:
           - target: aarch64-linux-android
             runner: ubuntu-latest
             libfile: libjetro_dart.so
-            cross: true
+            ndk: true
+            ndk_arch: arm64-v8a
           - target: armv7-linux-androideabi
             runner: ubuntu-latest
             libfile: libjetro_dart.so
-            cross: true
+            ndk: true
+            ndk_arch: armeabi-v7a
           - target: x86_64-linux-android
             runner: ubuntu-latest
             libfile: libjetro_dart.so
-            cross: true
+            ndk: true
+            ndk_arch: x86_64
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,12 +65,20 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install cross (Linux cross-compile)
+      - name: Install cross
         if: matrix.cross == true
-        run: cargo install cross --locked
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Install cargo-ndk (Android)
+        if: matrix.ndk == true
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-ndk
 
       - name: Build (cargo)
-        if: matrix.cross != true
+        if: matrix.cross != true && matrix.ndk != true
         shell: bash
         run: |
           cargo build --release --target ${{ matrix.target }} \
@@ -79,6 +90,17 @@ jobs:
         run: |
           cross build --release --target ${{ matrix.target }} \
             --manifest-path rust/Cargo.toml
+
+      - name: Build (cargo-ndk, Android)
+        if: matrix.ndk == true
+        shell: bash
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
+        run: |
+          cargo ndk --target ${{ matrix.ndk_arch }} \
+            --platform 24 \
+            --manifest-path rust/Cargo.toml \
+            -- build --release --target ${{ matrix.target }}
 
       - name: Stage artifact
         shell: bash
