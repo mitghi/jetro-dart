@@ -217,7 +217,7 @@ is stable.
 ## Install
 
 `jetro_dart` ships as a **Dart Native Assets** package (Dart `hooks`
-protocol). End users do not have to deal with the cdylib at all — the
+protocol). End users do not have to deal with the cdylib at all, the
 build hook resolves it automatically.
 
 ### From pub.dev (consumers)
@@ -253,7 +253,7 @@ j.dispose();
 
 No `DynamicLibrary.open`, no asset bundling, no library-path env var.
 
-### From source (contributors)
+### From source
 
 ```bash
 cargo build --release -p jetro-dart-ffi
@@ -278,16 +278,6 @@ dart run bench/bench_cold.dart [N]       # default N = 8000
 
 Targets not in this list fall through to source-build. Add yours via
 PR to `.github/workflows/release.yml`.
-
-### Publishing a new release (maintainers)
-
-1. Bump `version:` in `pubspec.yaml` and `rust/Cargo.toml`.
-2. `git tag v<version> && git push --tags` — triggers the
-   `release.yml` workflow that cross-compiles a cdylib per target and
-   attaches each binary to the GitHub Release.
-3. `dart pub publish` once the workflow finishes. The package itself
-   is small (no binaries shipped inside the tarball); user installs
-   pull binaries from the Release via the hook.
 
 ## C ABI
 
