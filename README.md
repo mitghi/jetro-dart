@@ -3,6 +3,30 @@
 Dart / Flutter FFI bindings for **[jetro](https://github.com/mitghi/jetro)** a
 compact query language and JSON processing engine written in Rust.
 
+## Install
+
+```bash
+# Pure Dart (CLI / server / scripts)
+dart pub add jetro_dart
+
+# Flutter
+flutter pub add jetro_dart
+flutter config --enable-native-assets   # one-time per machine
+```
+
+After installation:
+
+```dart
+import 'package:jetro_dart/jetro_dart.dart';
+
+final j = Jetro.fromString(jsonText);
+final paid = j.collect(
+    r'$.orders.filter(status == "paid").map(total).sum()');
+j.dispose();
+```
+
+## A real example
+
 ```dart
 import 'dart:convert';
 import 'package:jetro_dart/jetro_dart.dart';
@@ -214,70 +238,45 @@ is stable.
 
 ---
 
-## Install
+## How install actually works
 
-`jetro_dart` ships as a **Dart Native Assets** package (Dart `hooks`
-protocol). End users do not have to deal with the cdylib at all, the
-build hook resolves it automatically.
-
-### From pub.dev (consumers)
-
-```bash
-# Dart CLI / server
-dart pub add jetro_dart
-
-# Flutter
-flutter pub add jetro_dart
-flutter config --enable-native-assets   # Flutter side still gates this
-```
-
-On the first build, `hook/build.dart` runs:
+`jetro_dart` ships using the Dart `hooks` (Native Assets) protocol.
+The build pipeline is:
 
 1. Compute the target triple for your host (or Flutter target).
-2. Try to download a prebuilt `libjetro_dart.{dylib,so,dll}` from this
-   package's GitHub Release.
-3. If that fails (offline, unsupported target, etc.), fall back to
+2. Try to download a prebuilt `libjetro_dart.{dylib,so,dll}` from the
+   GitHub Release matching the package version.
+3. If that fails (offline, unsupported target), fall back to
    `cargo build --release` against the bundled Rust workspace in
    `rust/`. Requires a Rust toolchain (`rustup`).
+4. Register the resulting library as a `CodeAsset` keyed to
+   `package:jetro_dart/src/bindings.dart`, so the `@Native` lookups in
+   the Dart facade resolve automatically.
 
-Either way, the result is registered as a `CodeAsset` keyed to
-`package:jetro_dart/src/bindings.dart`. Your code just does:
+### Supported prebuilt targets
 
-```dart
-import 'package:jetro_dart/jetro_dart.dart';
+| OS / arch              | Triple                      |
+|------------------------|-----------------------------|
+| macOS arm64            | `aarch64-apple-darwin`      |
+| macOS x86_64           | `x86_64-apple-darwin`       |
+| Linux x86_64           | `x86_64-unknown-linux-gnu`  |
+| Linux aarch64          | `aarch64-unknown-linux-gnu` |
+| Windows x86_64         | `x86_64-pc-windows-msvc`    |
+| Android arm64-v8a      | `aarch64-linux-android`     |
+| Android armeabi-v7a    | `armv7-linux-androideabi`   |
+| Android x86_64         | `x86_64-linux-android`      |
 
-final j = Jetro.fromString(jsonText);
-final out = j.collect(r'$.orders.filter(status == "paid").map(total).sum()');
-j.dispose();
-```
+Other targets fall through to source-build (`cargo build`).
 
-No `DynamicLibrary.open`, no asset bundling, no library-path env var.
-
-### From source
+### From source (contributors)
 
 ```bash
 cargo build --release -p jetro-dart-ffi
 dart pub get
-dart run bench/bench_cold.dart [N]       # default N = 8000
+dart test                                  # 81 tests
+dart run example/jetro_dart_example.dart   # walk through the language
+dart run bench/bench_cold.dart [N]         # default N = 8000
 ```
-
-### Supported targets (prebuilt)
-
-| OS / arch                  | Triple                      |
-|----------------------------|-----------------------------|
-| macOS arm64                | `aarch64-apple-darwin`      |
-| macOS x86_64               | `x86_64-apple-darwin`       |
-| Linux x86_64               | `x86_64-unknown-linux-gnu`  |
-| Linux aarch64              | `aarch64-unknown-linux-gnu` |
-| Windows x86_64             | `x86_64-pc-windows-msvc`    |
-| Windows arm64              | `aarch64-pc-windows-msvc`   |
-| iOS device (arm64)         | `aarch64-apple-ios`         |
-| Android arm64-v8a          | `aarch64-linux-android`     |
-| Android armeabi-v7a        | `armv7-linux-androideabi`   |
-| Android x86_64             | `x86_64-linux-android`      |
-
-Targets not in this list fall through to source-build. Add yours via
-PR to `.github/workflows/release.yml`.
 
 ## C ABI
 

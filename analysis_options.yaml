@@ -1,0 +1,13 @@
+include: package:lints/recommended.yaml
+
+analyzer:
+  exclude:
+    - bench/**
+    - rust/**
+    - target/**
+
+linter:
+  rules:
+    - prefer_relative_imports
+    - prefer_single_quotes
+    - unawaited_futures
