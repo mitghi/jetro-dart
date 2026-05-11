@@ -1,0 +1,101 @@
+# Build cdylib for every supported target and attach to the GitHub
+# Release matching the tag (`vX.Y.Z`). Triggered when a tag of that
+# shape is pushed. The release artifact naming convention must match
+# what `hook/build.dart` expects:
+#
+#   jetro_dart-v<version>-<target-triple>-<libfile>
+#
+# e.g. jetro_dart-v0.1.0-aarch64-apple-darwin-libjetro_dart.dylib
+
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: build-${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            libfile: libjetro_dart.dylib
+          - target: x86_64-apple-darwin
+            runner: macos-13
+            libfile: libjetro_dart.dylib
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
+            libfile: libjetro_dart.so
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-latest
+            libfile: libjetro_dart.so
+            cross: true
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            libfile: jetro_dart.dll
+          - target: aarch64-pc-windows-msvc
+            runner: windows-latest
+            libfile: jetro_dart.dll
+          - target: aarch64-apple-ios
+            runner: macos-14
+            libfile: libjetro_dart.dylib
+          - target: aarch64-linux-android
+            runner: ubuntu-latest
+            libfile: libjetro_dart.so
+            cross: true
+          - target: armv7-linux-androideabi
+            runner: ubuntu-latest
+            libfile: libjetro_dart.so
+            cross: true
+          - target: x86_64-linux-android
+            runner: ubuntu-latest
+            libfile: libjetro_dart.so
+            cross: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross (Linux cross-compile)
+        if: matrix.cross == true
+        run: cargo install cross --locked
+
+      - name: Build (cargo)
+        if: matrix.cross != true
+        shell: bash
+        run: |
+          cargo build --release --target ${{ matrix.target }} \
+            --manifest-path rust/Cargo.toml
+
+      - name: Build (cross)
+        if: matrix.cross == true
+        shell: bash
+        run: |
+          cross build --release --target ${{ matrix.target }} \
+            --manifest-path rust/Cargo.toml
+
+      - name: Stage artifact
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          asset="jetro_dart-v${version}-${{ matrix.target }}-${{ matrix.libfile }}"
+          src="target/${{ matrix.target }}/release/${{ matrix.libfile }}"
+          mkdir -p dist
+          cp "$src" "dist/$asset"
+          echo "ASSET=dist/$asset" >> "$GITHUB_ENV"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ASSET }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
