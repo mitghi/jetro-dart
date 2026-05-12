@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Bump `jetro-core` to 0.5.8.
+
 ## 0.1.0
 
 - Initial release.

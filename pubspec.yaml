@@ -4,7 +4,7 @@ description: >-
   transformation engine. Ships as a Native Assets package: prebuilt
   cdylib downloaded at install for common targets, falls back to
   cargo build from source.
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/mitghi/jetro-dart
 repository: https://github.com/mitghi/jetro-dart
 issue_tracker: https://github.com/mitghi/jetro-dart/issues
